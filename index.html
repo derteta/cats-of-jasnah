@@ -269,6 +269,33 @@ var cur_atts = {};
 var cur_level = 0;
 let clue;
 
+const get_phrase_for_att = function(att, is_adjective) {
+  let negate = cur_atts[att]
+  const motion_phrases = {
+    'bouncing': 'huepfen',
+    'spinning': 'drehen sich',
+  }
+  if (att in motion_phrases) {
+    let postfix = negate ? '' : ' nicht'
+    return motion_phrases[att] + postfix
+  }
+  const color_phrases = {
+    'red': 'rot',
+    'blue': 'blau',
+    'yellow': 'gelb',
+  }
+  if (att in color_phrases) {
+    let color = color_phrases[att]
+    let negation = negate ? '' : 'nicht '
+    if (is_adjective) return negation + color + 'e'
+    return 'sind ' + negation + color
+  }
+  if (att == 'ducks') {
+    if (is_adjective) return 'Ente'
+    return 'sind ' + (negate ? '' : 'nicht ') + 'Enten'
+  }
+  return att
+}
 var pick_rand = function(seq) {
 	return seq[Math.floor(Math.random()*seq.length)]
 }
@@ -343,42 +370,36 @@ const permute_atts = function() {
 const speak = function(text, opts) {
 	opts = opts || {}
 	$("p").text(text)
-	responsiveVoice.speak(text, "US English Female", opts)
+	responsiveVoice.speak(text, "Deutsch Female", opts)
 }
 
 var make_cats = function() {
 	set_avail_atts()
 	permute_atts()
 	is_reversed = Math.random() < 0.5
-	let text = "how many "
+	let text = "Wie viele "
 	const keys = Object.keys(cur_atts)
 	const prefix_pos = get_level_num_adjectives(cur_level, keys)
 	const prefix_keys = keys.slice(0,prefix_pos)
 	if (prefix_keys.length) {
 		let prefix_words = []
 		for (let att in prefix_keys) {
-			prefix_words.push(
-				(cur_atts[prefix_keys[att]] ? '' : 'not-')
-				+ prefix_keys[att])
+			prefix_words.push(get_phrase_for_att(prefix_keys[att], true))
 		}
 		text += prefix_words.join(", ") + " "
-		// ducks is just 'duck' when used as an adjective
-		text = text.replace("ducks", "duck")
 	}
 	postfix_keys = keys.slice(prefix_pos)
 	if (postfix_keys.length) {
-		text += "cats are "
+		text += "Katzen "
 	
 		let conjunctions = []
 		for (let att in postfix_keys) {
-			conjunctions.push(
-				(cur_atts[postfix_keys[att]] ? '' : 'not ')
-				+ postfix_keys[att])
+			conjunctions.push(get_phrase_for_att(postfix_keys[att], false))
 		}
 		console.log(conjunctions)
-		text += conjunctions.join(" and are ")
+		text += conjunctions.join(" und ")
 	} else {
-		text += "cats are here"
+		text += "Katzen sind zu sehen"
 	}
 	text += "?"
 	clue = text;
@@ -424,12 +445,12 @@ const submit = function(value) {
 	
 	console.log('answer:', answer)
 	if (value === answer) {
-		speak("That's right, " + answer, {
+		speak("Das stimmt, " + answer, {
 			onend: function(){
 				make_cats()
 			}})
 	} else {
-		speak("Good try, but that's wrong.", {
+		speak("Guter Versuch, stimmt aber nicht ganz.", {
 			onend: function() {
 				speak(clue)
 			}
